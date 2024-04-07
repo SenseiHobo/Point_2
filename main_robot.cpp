@@ -8,71 +8,72 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    // Opretter databaseforbindelse
     QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
     db.setHostName("localhost");
     db.setDatabaseName("robot_worker");
-    db.setUserName("sammy");  // Husk at ændre dette til dit brugernavn
-    db.setPassword("#Superdeadcasp2004");  // Husk at ændre dette til din adgangskode
+    db.setUserName("sammy");  
+    db.setPassword("#Superdeadcasp2004");  
     if (!db.open()) {
-        qDebug() << "Databaseforbindelse mislykkedes";
+        qDebug() << "Database connection failed";
         return -1;
     }
 
-
-    // Viser tilgængelige opgaver 
-
     QSqlQuery query;
-     if (query.exec("SELECT * FROM task")) {
+    QString robotName = "MyRobot";
+    if (!query.exec(QString("INSERT INTO robots (name, current_task) VALUES ('%1', 'Starting')").arg(robotName))) {
+        qDebug() << "Could not create robot in the database:" << query.lastError().text();
+        return -1;
+    }
+    qDebug() << "Robot named" << robotName << "has been created in the database.";
+
+   
+    if (query.exec("SELECT * FROM task")) {
         while (query.next()) {
-
-            int id = query.value(0).toInt(); 
-            QString taskName = query.value(1).toString(); 
-            QString time = query.value(2).toString(); 
-
-            // Udskriv opgavens ID og navn
-            qDebug() << "Opgave ID:" << id << "Navn:" << taskName << "Tid: " << time;
+            int id = query.value(0).toInt();
+            QString taskName = query.value(1).toString();
+            QString time = query.value(2).toString();
+            qDebug() << "Task ID:" << id << "Name:" << taskName << "Time:" << time;
         }
     } else {
-        qDebug() << "Fejl under udførsel af forespørgsel:" << query.lastError().text();
+        qDebug() << "Error executing query:" << query.lastError().text();
     }
 
-
+    
     int taskId;
-    std::cout << "Indtast ID for den opgave, du ønsker at fjerne: ";
+    std::cout << "Enter the ID of the task you wish to remove: ";
     std::cin >> taskId;
-
 
     query.prepare("DELETE FROM task WHERE task_id = :task_id");
     query.bindValue(":task_id", taskId);
-
     if (query.exec()) {
         if(query.numRowsAffected() > 0) {
-            qDebug() << "Opgaven med ID " << taskId << " er nu blevet klaret og er fjernet fra databasen.";
+            qDebug() << "The task with ID" << taskId << "has now been completed and removed from the database.";
         } else {
-            qDebug() << "Ingen opgaver fundet med det angivne ID.";
+            qDebug() << "No tasks found with the given ID.";
         }
     } else {
-        qDebug() << "Fejl under fjernelsen af opgave: " << query.lastError().text();
+        qDebug() << "Error removing task:" << query.lastError().text();
     }
 
-    std::cout << "Efterladende opgaver" << std::endl;
-
+    
+    std::cout << "Remaining tasks" << std::endl;
     if (query.exec("SELECT * FROM task")) {
         while (query.next()) {
-
-            int id = query.value(0).toInt(); 
-            QString taskName = query.value(1).toString(); 
-            QString time = query.value(2).toString(); 
-
-            // Udskriv opgavens ID og navn
-            qDebug() << "Opgave ID:" << id << "Navn:" << taskName << "Tid: " << time;
+            int id = query.value(0).toInt();
+            QString taskName = query.value(1).toString();
+            QString time = query.value(2).toString();
+            qDebug() << "Task ID:" << id << "Name:" << taskName << "Time:" << time;
         }
     } else {
-        qDebug() << "Fejl under udførsel af forespørgsel:" << query.lastError().text();
+        qDebug() << "Error executing query:" << query.lastError().text();
     }
 
-
+    
+    if (!query.exec(QString("DELETE FROM robots WHERE name = '%1'").arg(robotName))) {
+        qDebug() << "Could not remove robot from the database:" << query.lastError().text();
+    } else {
+        qDebug() << "Robot named" << robotName << "has been removed from the database.";
+    }
 
     return 0;
 }
